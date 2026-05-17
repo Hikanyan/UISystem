@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "displayName": "Hikanyan UI System",
   "description": "説明文をここに書く。短く機能をまとめる。",
-  "unity": "6000.3.15f1",
+  "unity": "6000.3",
   "keywords": ["ui", "hikanyan"],
   "author": {
     "name": "Your Name or Organization",
