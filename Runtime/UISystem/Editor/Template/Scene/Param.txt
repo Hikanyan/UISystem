@@ -1,0 +1,12 @@
+﻿namespace {{NAMESPACE}}
+{
+    public class {{PARAM_CLASS}} : Parameter
+    {
+        public string Message;
+
+        public {{PARAM_CLASS}}(string message)
+        {
+            Message = message;
+        }
+    }
+}

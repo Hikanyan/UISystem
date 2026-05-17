@@ -2,13 +2,25 @@
   "name": "com.hikanyan.uisystem",
   "version": "1.0.0",
   "displayName": "Hikanyan UI System",
-  "description": "説明文をここに書く。短く機能をまとめる。",
-  "unity": "6000.3",
-  "keywords": ["ui", "hikanyan"],
+  "description": "A lightweight UI management system for Unity with MVP architecture support",
+  "unity": "2020.3",
+  "unityRelease": "0f1",
+  "keywords": ["ui", "mvp", "hikanyan"],
   "author": {
-    "name": "Your Name or Organization",
-    "url": "https://github.com/Hikanyan/UISystem.git"
+    "name": "Hikanyan",
+    "url": "https://github.com/Hikanyan"
   },
   "license": "MIT",
-  "dependencies": {}
+  "homepage": "https://github.com/Hikanyan/UISystem",
+  "bugs": {
+    "url": "https://github.com/Hikanyan/UISystem/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hikanyan/UISystem.git"
+  },
+  "dependencies": {
+    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
+    "com.hikanyan.hikanyanlibrary.core": "https://github.com/Hikanyan/HikanyanLibrary-Core.git"
+  }
 }

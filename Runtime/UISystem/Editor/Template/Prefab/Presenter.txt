@@ -1,0 +1,34 @@
+﻿using System.Threading;
+using Cysharp.Threading.Tasks;
+using UnityEngine;
+
+namespace {{NAMESPACE}}
+{
+    /// <summary>
+    /// {{BASE_NAME}} Presenter
+    /// </summary>
+    [DisallowMultipleComponent]
+    [RequireComponent(typeof({{VIEW_CLASS}}))]
+    public sealed class {{PRESENTER_CLASS}} : {{PRESENTER_BASE}}
+    {
+        /// <summary>
+        /// Model が Bind された直後に呼ばれる想定のフック。
+        /// PresenterBase の設計に合わせて適宜変更してください。
+        /// </summary>
+        protected override void OnBind()
+        {
+            // Model → View 反映
+            View.SetMessage(Model.Message);
+        }
+
+        protected override UniTask OnOpenInternalAsync(CancellationToken cancellationToken)
+        {
+            return UniTask.CompletedTask;
+        }
+
+        protected override UniTask OnCloseInternalAsync(CancellationToken cancellationToken)
+        {
+            return UniTask.CompletedTask;
+        }
+    }
+}

@@ -1,0 +1,15 @@
+﻿namespace {{NAMESPACE}}
+{
+    /// <summary>
+    /// {{BASE_NAME}} 用のモデル（パラメータ）
+    /// </summary>
+    public sealed class {{PARAM_CLASS}} : Parameter
+    {
+        public string Message;
+
+        public {{PARAM_CLASS}}(string message)
+        {
+            Message = message;
+        }
+    }
+}
