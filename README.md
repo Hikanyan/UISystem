@@ -19,6 +19,11 @@ Or add to your `Packages/manifest.json`:
   }
 }
 ```
+## Requirements
+
+このパッケージを使用するには、以下を先にインストールしてください：
+- UniTask: https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask
+- HikanyanLibrary-Core: https://github.com/Hikanyan/HikanyanLibrary-Core.git
 
 ## License
 
