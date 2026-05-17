@@ -19,8 +19,6 @@
     "url": "https://github.com/Hikanyan/UISystem.git"
   },
   "dependencies": {
-    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
-    "com.hikanyan.hikanyanlibrary.core": "https://github.com/Hikanyan/HikanyanLibrary-Core.git",
     "com.unity.addressables": "2.9.1"
   }
 }
