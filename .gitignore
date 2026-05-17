@@ -119,7 +119,9 @@ InitTestScene*.unity*
 /[Aa]ssets/Settings.meta
 
 # Exclude project files
-/[Pp]ackages/
+# Ignore all packages except our custom package
+/Packages/*
+!/Packages/com.hikanyan.uisystem/
 /[Pp]roject[Ss]ettings/
 Assembly-CSharp.csproj
 UISystem.sln

@@ -1,0 +1,18 @@
+﻿{
+    "name": "com.hikanyan.uisystem.editor",
+    "rootNamespace": "HikanyanLibrary.UISystem.Editor",
+    "references": [
+        "com.hikanyan.uisystem"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

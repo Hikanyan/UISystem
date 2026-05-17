@@ -1,0 +1,19 @@
+{
+    "name": "com.hikanyan.uisystem",
+    "rootNamespace": "HikanyanLibrary.UISystem",
+    "references": [
+        "HikanyanLibrary.Core",
+        "UniTask",
+        "Unity.Addressables",
+        "Unity.ResourceManager"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
