@@ -122,6 +122,7 @@ InitTestScene*.unity*
 # Ignore all packages except our custom package
 /Packages/*
 !/Packages/com.hikanyan.uisystem/
+!/Packages/com.hikanyan.prefabkeysgenerator/
 /[Pp]roject[Ss]ettings/
 Assembly-CSharp.csproj
 UISystem.sln
