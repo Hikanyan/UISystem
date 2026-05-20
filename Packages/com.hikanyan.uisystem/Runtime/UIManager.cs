@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -59,7 +59,16 @@ namespace HikanyanLibrary.UISystem
             var type = node.GetType();
             if (_sceneTypeToId.TryGetValue(type, out var already) && already != id)
             {
-                Debug.LogError($"UIManager: SceneResident の同一型が複数登録されました。type={type.Name} id={already} newId={id}");
+                // 旧IDが既に破棄済みなら置き換える
+                if (!_nodes.TryGetValue(already, out var oldEntry) || oldEntry.Node == null)
+                {
+                    _nodes.Remove(already);
+                    _sceneTypeToId[type] = id;
+                }
+                else
+                {
+                    Debug.LogError($"UIManager: SceneResident の同一型が複数登録されました。type={type.Name} id={already} newId={id}");
+                }
             }
             else
             {
@@ -67,6 +76,24 @@ namespace HikanyanLibrary.UISystem
             }
 
             return id;
+        }
+
+        /// <summary>
+        /// Scene 常駐UIを登録解除する
+        /// </summary>
+        public void UnregisterSceneNode(UINodeBase node)
+        {
+            if (node == null)
+                return;
+
+            var id = node.gameObject.GetInstanceID();
+            _nodes.Remove(id);
+
+            var type = node.GetType();
+            if (_sceneTypeToId.TryGetValue(type, out var registeredId) && registeredId == id)
+            {
+                _sceneTypeToId.Remove(type);
+            }
         }
 
         /// <summary>
@@ -130,6 +157,15 @@ namespace HikanyanLibrary.UISystem
         {
             // まず登録を待つ（タイムアウト付き）
             var presenterType = typeof(TPresenter);
+
+            if (_sceneTypeToId.TryGetValue(presenterType, out var staleId))
+            {
+                if (!_nodes.TryGetValue(staleId, out var staleEntry) || staleEntry.Node == null)
+                {
+                    _nodes.Remove(staleId);
+                    _sceneTypeToId.Remove(presenterType);
+                }
+            }
 
             if (!_sceneTypeToId.TryGetValue(presenterType, out var id))
             {
