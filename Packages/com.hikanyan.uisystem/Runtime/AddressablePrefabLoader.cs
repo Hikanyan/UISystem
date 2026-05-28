@@ -64,12 +64,12 @@ namespace HikanyanLibrary.UISystem
                 Debug.LogError($"AddressablePrefabLoader: prefabKey={prefabKey} から {typeof(T).Name} を取得できませんでした。");
                 return null;
             }
-            finally
-            {
-                if (handle.IsValid())
-                {
-                    Addressables.Release(handle);
-                }
+            // finally
+            // {
+            //     if (handle.IsValid())
+            //     {
+            //         Addressables.Release(handle);
+            //     }
             }
         }
 
@@ -94,13 +94,13 @@ namespace HikanyanLibrary.UISystem
                 Debug.LogError($"AddressablePrefabLoader: prefabKey={prefabKey} から {typeof(T).Name} を取得できませんでした。");
                 return null;
             }
-            finally
-            {
-                if (handle.IsValid())
-                {
-                    Addressables.Release(handle);
-                }
-            }
+            // finally
+            // {
+            //     if (handle.IsValid())
+            //     {
+            //         Addressables.Release(handle);
+            //     }
+            // }
         }
     }
 }
