@@ -70,7 +70,7 @@ namespace HikanyanLibrary.UISystem
             //     {
             //         Addressables.Release(handle);
             //     }
-            }
+            // }
         }
 
         public static async UniTask<T> LoadAndInstantiateAsync<T>(string prefabKey, Transform parent,
