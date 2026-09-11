@@ -123,6 +123,7 @@ InitTestScene*.unity*
 /Packages/*
 !/Packages/com.hikanyan.uisystem/
 !/Packages/com.hikanyan.prefabkeysgenerator/
+!/Packages/com.hikanyan.uitools/
 /[Pp]roject[Ss]ettings/
 Assembly-CSharp.csproj
 UISystem.sln

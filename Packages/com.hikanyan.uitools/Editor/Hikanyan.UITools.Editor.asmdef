@@ -1,0 +1,5 @@
+{
+  "name": "Hikanyan.UITools.Editor",
+  "references": ["Hikanyan.UITools", "Unity.ugui", "Unity.ugui.Editor"],
+  "includePlatforms": ["Editor"]
+}
