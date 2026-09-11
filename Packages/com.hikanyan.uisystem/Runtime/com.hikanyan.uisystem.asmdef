@@ -3,6 +3,7 @@
     "rootNamespace": "HikanyanLibrary.UISystem",
     "references": [
         "UniTask",
+        "Unity.ugui",
         "Unity.Addressables",
         "Unity.ResourceManager"
     ],

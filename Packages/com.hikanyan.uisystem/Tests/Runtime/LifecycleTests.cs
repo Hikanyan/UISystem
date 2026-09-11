@@ -135,5 +135,21 @@ namespace HikanyanLibrary.UISystem.Tests
             }
             finally { UnityEngine.Object.DestroyImmediate(go); }
         });
+
+        [UnityTest] public IEnumerator RegistrationTimeoutUsesRealTimeDuringPause() => UniTask.ToCoroutine(async () =>
+        {
+            var go = new GameObject("manager");
+            var scale = Time.timeScale;
+            try
+            {
+                Time.timeScale = 0;
+                var manager = go.AddComponent<UIManager>();
+                var start = Time.realtimeSinceStartupAsDouble;
+                try { await manager.OpenSceneAsync<TestPresenter, TestArgs>(new TestArgs()); Assert.Fail("Expected timeout"); }
+                catch (TimeoutException) { }
+                Assert.Less(Time.realtimeSinceStartupAsDouble - start, 8);
+            }
+            finally { Time.timeScale = scale; UnityEngine.Object.DestroyImmediate(go); }
+        });
     }
 }

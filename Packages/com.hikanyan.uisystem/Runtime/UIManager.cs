@@ -107,12 +107,12 @@ namespace HikanyanLibrary.UISystem
         {
             RemoveEntry(id);
             if (node == null) return;
-            node.Dispose();
-            Destroy(node.gameObject);
+            new DefaultUIViewLoader().Release(node);
         }
 
         public async UniTask CloseAsync(int uniqueId, CancellationToken cancellationToken = default)
         {
+            if (_handles.TryGetValue(uniqueId, out var handle)) { await CloseHandleAsync(handle, cancellationToken); return; }
             cancellationToken.ThrowIfCancellationRequested();
             if (!_nodes.TryGetValue(uniqueId, out var entry) || entry.Node == null) return;
             try { await entry.Node.CloseAsync(cancellationToken); }
@@ -152,6 +152,7 @@ namespace HikanyanLibrary.UISystem
         private void OnDestroy()
         {
             _lifetime.Cancel();
+            DisposePresentations();
             var entries = new List<NodeEntry>(_nodes.Values);
             foreach (var entry in entries)
             {
