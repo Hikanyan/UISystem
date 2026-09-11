@@ -1,4 +1,5 @@
-﻿namespace {{NAMESPACE}}
+using HikanyanLibrary.UISystem;
+namespace {{NAMESPACE}}
 {
     public class {{PARAM_CLASS}} : Parameter
     {

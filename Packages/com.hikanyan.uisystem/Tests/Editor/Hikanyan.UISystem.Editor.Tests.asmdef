@@ -1,0 +1,7 @@
+{
+  "name": "Hikanyan.UISystem.Editor.Tests",
+  "references": ["com.hikanyan.uisystem", "com.hikanyan.uisystem.editor"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "defineConstraints": ["UNITY_INCLUDE_TESTS"]
+}

@@ -12,11 +12,11 @@ namespace HikanyanLibrary.Tool
         {
             if (!PrefabKeysGeneratorSettings.AutoGenerateOnModified) return;
 
-            string watchPath = PrefabKeysGeneratorSettings.FilterPath;
+            string watchPath = PrefabKeysGeneratorSettings.FilterPath.TrimEnd('/') + "/";
             if (string.IsNullOrEmpty(watchPath)) return;
 
             bool shouldExecute = false;
-            var allChanges = importedAssets.Concat(deletedAssets).Concat(movedAssets);
+            var allChanges = importedAssets.Concat(deletedAssets).Concat(movedAssets).Concat(movedFromAssetPaths);
 
             foreach (var assetPath in allChanges)
             {
@@ -29,10 +29,7 @@ namespace HikanyanLibrary.Tool
 
             if (shouldExecute)
             {
-                EditorApplication.delayCall += () =>
-                {
-                    AddressableAssetsUtil.MoveSubEntryToRootAndGenerateKeys();
-                };
+                AddressableAssetsUtil.ScheduleGeneration();
             }
         }
     }

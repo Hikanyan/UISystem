@@ -27,7 +27,7 @@ namespace HikanyanLibrary.UISystem.Editor
             "Assets/HikanyanLibrary/Scripts/UISystem/Editor/UIMvpCreatorSettings.asset";
 
         // Settings パスを保持（任意パス対応）
-        private const string SettingsPathPrefsKey = "Hikanyan.UIMvpCreator.SettingsPath";
+        private static string SettingsPathPrefsKey => "Hikanyan.UIMvpCreator.SettingsPath." + Application.dataPath;
         private string _settingsPath = string.Empty;
 
         private UIMvpCreatorSettings _settings = null!;
@@ -391,6 +391,7 @@ namespace HikanyanLibrary.UISystem.Editor
         // ----------------------------
         private void CreateScene()
         {
+            if (!ValidateInput()) return;
             var baseName = SanitizeToIdentifier(_uiName);
             if (string.IsNullOrWhiteSpace(baseName))
             {
@@ -457,6 +458,7 @@ namespace HikanyanLibrary.UISystem.Editor
         // ----------------------------
         private void CreatePrefab()
         {
+            if (!ValidateInput()) return;
             var baseName = SanitizeToIdentifier(_uiName);
             if (string.IsNullOrWhiteSpace(baseName))
             {
@@ -630,6 +632,8 @@ namespace HikanyanLibrary.UISystem.Editor
                 foreach (var guid in guids)
                 {
                     var path = AssetDatabase.GUIDToAssetPath(guid);
+                    var ownDir = $"{settings.GeneratedRoot}/{currentMode}/{baseName}/";
+                    if (path.StartsWith(ownDir, StringComparison.Ordinal)) continue;
                     var file = Path.GetFileNameWithoutExtension(path);
                     if (string.Equals(file, className, StringComparison.Ordinal))
                         return true;
@@ -806,7 +810,7 @@ namespace HikanyanLibrary.UISystem.Editor
 
         private static class ScenePendingStore
         {
-            private const string Key = "Hikanyan.UIMvpCreator.ScenePending";
+            private static string Key => "Hikanyan.UIMvpCreator.ScenePending." + Application.dataPath;
             public static void Save(ScenePending data) => EditorPrefs.SetString(Key, EditorJsonUtility.ToJson(data));
 
             public static bool TryLoad(out ScenePending data)
@@ -826,7 +830,7 @@ namespace HikanyanLibrary.UISystem.Editor
 
         private static class PrefabPendingStore
         {
-            private const string Key = "Hikanyan.UIMvpCreator.PrefabPending";
+            private static string Key => "Hikanyan.UIMvpCreator.PrefabPending." + Application.dataPath;
             public static void Save(PrefabPending data) => EditorPrefs.SetString(Key, EditorJsonUtility.ToJson(data));
 
             public static bool TryLoad(out PrefabPending data)
@@ -923,6 +927,27 @@ namespace HikanyanLibrary.UISystem.Editor
                     AssetDatabase.CreateFolder(current, parts[i]);
                 current = next;
             }
+        }
+
+        private bool ValidateInput()
+        {
+            if (!CodeGenerationValidation.IsNamespace(_namespace))
+            {
+                EditorUtility.DisplayDialog("Invalid namespace", "Use a C# namespace such as MyGame.UI (no keywords).", "OK");
+                return false;
+            }
+            var pendingKey = "Hikanyan.UIMvpCreator." + s_openMode + "Pending." + Application.dataPath;
+            if (EditorPrefs.HasKey(pendingKey))
+            {
+                UIMvpCreatorPostCompile.TryAttachNow();
+                if (EditorPrefs.HasKey(pendingKey))
+                {
+                    if (EditorUtility.DisplayDialog("Generation pending", "Fix compilation errors and retry. Clear an abandoned generation?", "Clear", "Cancel"))
+                        EditorPrefs.DeleteKey(pendingKey);
+                    return false;
+                }
+            }
+            return true;
         }
 
         private static void SetPrivateBool(Component target, string fieldName, bool value)

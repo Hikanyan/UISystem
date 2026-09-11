@@ -1,169 +1,103 @@
 #if UNITY_EDITOR
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
-using UnityEngine;
 
 namespace HikanyanLibrary.Tool
 {
     public static class AddressableAssetsUtil
     {
+        private static bool _running;
+        private static bool _scheduled;
+        public static bool IsAddressablesInitialized() => AddressableAssetSettingsDefaultObject.Settings != null;
         [MenuItem("HikanyanLaboratory/Addressable/Register and Generate Keys")]
-        public static void RegisterAndGenerateKeysMenu()
+        public static void RegisterAndGenerateKeysMenu() => MoveSubEntryToRootAndGenerateKeys();
+        public static void ScheduleGeneration()
         {
-            MoveSubEntryToRootAndGenerateKeys();
+            if (_running || _scheduled || !PrefabKeysGeneratorSettings.AutoGenerateOnModified) return;
+            _scheduled = true;
+            EditorApplication.delayCall += () =>
+            {
+                _scheduled = false;
+                if (!PrefabKeysGeneratorSettings.AutoGenerateOnModified) return;
+                try { MoveSubEntryToRootAndGenerateKeys(); }
+                catch (Exception e) { UnityEngine.Debug.LogError($"PrefabKeys: {e.Message}"); }
+            };
         }
-
-        public static bool IsAddressablesInitialized()
-        {
-            return AddressableAssetSettingsDefaultObject.Settings != null;
-        }
-
         public static int MoveSubEntryToRootAndGenerateKeys(string outputPath = null, string @namespace = null, string filterPath = null)
         {
-            var aaSettings = AddressableAssetSettingsDefaultObject.Settings;
-            if (aaSettings == null)
-            {
-                Debug.LogError("AddressableAssetSettings が見つかりません。Addressablesウィンドウから初期化してください。");
-                return 0;
-            }
-
-            var targetFolder = filterPath ?? PrefabKeysGeneratorSettings.FilterPath;
-            var normalizedFilterPath = NormalizePath(targetFolder);
-
-            // 1. 自動登録
-            RegisterPrefabsToAddressables(aaSettings, normalizedFilterPath);
-
-            if (aaSettings.groups == null || aaSettings.groups.Count == 0) return 0;
-
-            var prefabKeyDict = new Dictionary<string, string>();
-
-            // 2. 正規化とキー収集
-            foreach (var group in aaSettings.groups)
-            {
-                if (group == null) continue;
-
-                var entries = group.entries.ToList();
-                bool groupModified = false;
-
-                foreach (var entry in entries)
-                {
-                    if (entry == null || !entry.AssetPath.EndsWith(".prefab")) continue;
-
-                    var entryPath = entry.AssetPath.Replace("\\", "/");
-                    if (!entryPath.StartsWith(normalizedFilterPath, System.StringComparison.OrdinalIgnoreCase)) continue;
-
-                    var shortName = Path.GetFileNameWithoutExtension(entry.AssetPath);
-                    if (string.IsNullOrEmpty(shortName)) continue;
-
-                    if (entry.address != shortName)
-                    {
-                        entry.SetAddress(shortName);
-                        groupModified = true;
-                    }
-
-                    if (!prefabKeyDict.ContainsKey(shortName))
-                    {
-                        prefabKeyDict.Add(shortName, shortName);
-                    }
-                }
-
-                if (groupModified) EditorUtility.SetDirty(group);
-            }
-
-            // 3. C#定数生成
-            var finalOutputPath = !string.IsNullOrEmpty(outputPath) ? outputPath : PrefabKeysGeneratorSettings.OutputPath;
-            var finalNamespace = @namespace ?? PrefabKeysGeneratorSettings.Namespace;
-            
-            GeneratePrefabKeysClass(prefabKeyDict, finalOutputPath, finalNamespace);
-
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-            
-            return prefabKeyDict.Count;
-        }
-
-        private static void RegisterPrefabsToAddressables(AddressableAssetSettings settings, string folderPath)
-        {
-            string searchPath = folderPath.TrimEnd('/');
-            if (!AssetDatabase.IsValidFolder(searchPath)) return;
-
-            var prefabGuids = AssetDatabase.FindAssets("t:Prefab", new[] { searchPath });
-            var targetGroup = settings.groups.FirstOrDefault(g => g != null && g.Name == PrefabKeysGeneratorSettings.TargetGroupName);
-            if (targetGroup == null) targetGroup = settings.DefaultGroup;
-
-            if (targetGroup == null) return;
-
-            bool isModified = false;
-
-            foreach (var guid in prefabGuids)
-            {
-                var existingEntry = settings.FindAssetEntry(guid);
-                if (existingEntry == null)
-                {
-                    var entry = settings.CreateOrMoveEntry(guid, targetGroup);
-                    if (entry != null)
-                    {
-                        Debug.Log($"[PrefabKeys] Addressableに自動追加: {AssetDatabase.GUIDToAssetPath(guid)} -> {targetGroup.Name}");
-                        isModified = true;
-                    }
-                }
-            }
-
-            if (isModified) settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryAdded, targetGroup, true);
-        }
-
-        private static string NormalizePath(string path)
-        {
-            if (string.IsNullOrEmpty(path)) return "Assets/";
-            path = path.Replace("\\", "/").Trim();
-            if (!path.EndsWith("/")) path += "/";
-            return path;
-        }
-
-        private static void GeneratePrefabKeysClass(Dictionary<string, string> keyMap, string classPath, string @namespace)
-        {
-            var content = "////////////////////////////////////////////////////////////\n";
-            content += "// <auto-generated>\n";
-            content += "//     This code was generated by PrefabKeysGenerator.\n";
-            content += "// </auto-generated>\n";
-            content += "////////////////////////////////////////////////////////////\n\n";
-
-            if (!string.IsNullOrEmpty(@namespace)) content += $"namespace {@namespace}\n{{\n";
-
-            var indent = string.IsNullOrEmpty(@namespace) ? "" : "    ";
-            content += $"{indent}public static class PrefabKeys\n{indent}{{\n";
-            
-            foreach (var kvp in keyMap.OrderBy(x => x.Key))
-            {
-                if (!IsValidIdentifier(kvp.Key)) continue;
-                content += $"{indent}    public const string {kvp.Key} = \"{kvp.Value}\";\n";
-            }
-
-            content += $"{indent}}}\n";
-            if (!string.IsNullOrEmpty(@namespace)) content += "}";
-
+            if (_running) return 0;
+            _running = true;
             try
             {
-                var directory = Path.GetDirectoryName(classPath);
-                if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-                File.WriteAllText(classPath, content);
+                var settings = AddressableAssetSettingsDefaultObject.Settings;
+                if (settings == null) throw new InvalidOperationException("Initialize Addressables before generating keys.");
+                var folder = (filterPath ?? PrefabKeysGeneratorSettings.FilterPath).Replace('\\', '/').TrimEnd('/');
+                if (!folder.StartsWith("Assets/", StringComparison.Ordinal) || !AssetDatabase.IsValidFolder(folder))
+                    throw new ArgumentException("Select an existing UI subfolder under Assets. Assets-wide registration is disabled.");
+                var path = (outputPath ?? PrefabKeysGeneratorSettings.OutputPath).Replace('\\', '/');
+                var fullPath = Path.GetFullPath(path);
+                if (!fullPath.StartsWith(Path.GetFullPath("Assets") + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
+                    !path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
+                    throw new ArgumentException("Output must be a .cs file inside Assets.");
+                var ns = @namespace ?? PrefabKeysGeneratorSettings.Namespace;
+                var guids = AssetDatabase.FindAssets("t:Prefab", new[] { folder });
+                var keys = new Dictionary<string, string>(StringComparer.Ordinal);
+                var addresses = new HashSet<string>(StringComparer.Ordinal);
+                // Validate everything before modifying Addressables or files.
+                foreach (var guid in guids)
+                {
+                    var name = Path.GetFileNameWithoutExtension(AssetDatabase.GUIDToAssetPath(guid));
+                    var entry = settings.FindAssetEntry(guid);
+                    var address = entry?.address ?? guid;
+                    if (!keys.TryAdd(name, address)) throw new InvalidOperationException($"Duplicate prefab name: {name}. Rename one prefab.");
+                    if (!addresses.Add(address)) throw new InvalidOperationException($"Duplicate address: {address}.");
+                    foreach (var group in settings.groups)
+                        if (group != null && group.entries.Any(e => e.guid != guid && e.address == address))
+                            throw new InvalidOperationException($"Address '{address}' is used by another asset.");
+                }
+                var content = BuildSource(keys, ns);
+                var target = settings.groups.FirstOrDefault(g => g != null && g.Name == PrefabKeysGeneratorSettings.TargetGroupName) ?? settings.DefaultGroup;
+                if (target == null) throw new InvalidOperationException("Select an Addressables group.");
+                foreach (var guid in guids)
+                {
+                    if (settings.FindAssetEntry(guid) != null) continue;
+                    settings.CreateOrMoveEntry(guid, target).SetAddress(guid);
+                }
+                if (!File.Exists(path) || File.ReadAllText(path) != content)
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(path));
+                    File.WriteAllText(path, content, new UTF8Encoding(false));
+                    AssetDatabase.ImportAsset(path);
+                }
+                AssetDatabase.SaveAssets();
+                return keys.Count;
             }
-            catch (System.Exception ex)
-            {
-                Debug.LogError($"PrefabKeys書き込み失敗: {ex.Message}");
-                throw;
-            }
+            finally { _running = false; }
         }
-
-        private static bool IsValidIdentifier(string identifier)
+        public static string BuildSource(IReadOnlyDictionary<string, string> keys, string ns)
         {
-            if (string.IsNullOrEmpty(identifier)) return false;
-            if (!char.IsLetter(identifier[0]) && identifier[0] != '_') return false;
-            return identifier.Skip(1).All(c => char.IsLetterOrDigit(c) || c == '_');
+            string Identifier(string value)
+            {
+                if (string.IsNullOrEmpty(value) || !Regex.IsMatch(value, @"^[\p{L}_][\p{L}\p{Nd}_]*$"))
+                    throw new ArgumentException($"Invalid C# identifier: '{value}'. Rename the asset or namespace.");
+                return "@" + value;
+            }
+            string Escape(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "\\r").Replace("\n", "\\n");
+            var result = new StringBuilder("// <auto-generated />\n");
+            if (!string.IsNullOrEmpty(ns)) result.Append("namespace ").Append(string.Join(".", ns.Split('.').Select(Identifier))).Append("\n{\n");
+            result.Append("public static class PrefabKeys\n{\n");
+            foreach (var pair in keys.OrderBy(x => x.Key, StringComparer.Ordinal))
+                result.Append("    public const string ").Append(Identifier(pair.Key)).Append(" = \"").Append(Escape(pair.Value)).Append("\";\n");
+            result.Append("}\n");
+            if (!string.IsNullOrEmpty(ns)) result.Append("}\n");
+            return result.ToString();
         }
     }
 }

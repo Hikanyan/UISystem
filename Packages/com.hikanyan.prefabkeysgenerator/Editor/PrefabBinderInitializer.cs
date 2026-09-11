@@ -21,8 +21,7 @@ namespace HikanyanLibrary.Tool
             if (evt != AddressableAssetSettings.ModificationEvent.EntryAdded &&
                 evt != AddressableAssetSettings.ModificationEvent.EntryRemoved &&
                 evt != AddressableAssetSettings.ModificationEvent.EntryModified) return;
-            Debug.Log("Addressables Modified, Regenerating PrefabKeys...");
-            AddressableAssetsUtil.MoveSubEntryToRootAndGenerateKeys();
+            AddressableAssetsUtil.ScheduleGeneration();
         }
     }
 }

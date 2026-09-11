@@ -1,58 +1,32 @@
-﻿#if UNITY_EDITOR
 using UnityEditor;
 
 namespace HikanyanLibrary.Tool
 {
+    [FilePath("ProjectSettings/HikanyanPrefabKeys.asset", FilePathAttribute.Location.ProjectFolder)]
+    internal sealed class PrefabKeysProjectSettings : ScriptableSingleton<PrefabKeysProjectSettings>
+    {
+        public string outputPath = "Assets/Generated/PrefabKeys.cs";
+        public string filterPath = "Assets/UI";
+        public string namespaceName = "Game.UI";
+        public string groupName = "";
+        public bool autoGenerate;
+        public void Persist() => Save(true);
+    }
     public static class PrefabKeysGeneratorSettings
     {
-        private const string OutputPathKey = "PrefabKeysGenerator_OutputPath";
-        private const string AutoGenerateKey = "PrefabKeysGenerator_AutoGenerate";
-        private const string NamespaceKey = "PrefabKeysGenerator_Namespace";
-        private const string FilterPathKey = "PrefabKeysGenerator_FilterPath";
-        private const string TargetGroupKey = "PrefabKeysGenerator_TargetGroup";
-
-        // 汎用的に使い回せるように初期デフォルトパスをAssets直下に設定
-        private const string DefaultOutputPath = "Assets/Generated/PrefabKeys.cs";
-        private const string DefaultFilterPath = "Assets";
-
-        public static string OutputPath
-        {
-            get => EditorPrefs.GetString(OutputPathKey, DefaultOutputPath);
-            set => EditorPrefs.SetString(OutputPathKey, value);
-        }
-
-        public static bool AutoGenerateOnModified
-        {
-            get => EditorPrefs.GetBool(AutoGenerateKey, true);
-            set => EditorPrefs.SetBool(AutoGenerateKey, value);
-        }
-
-        public static string Namespace
-        {
-            get => EditorPrefs.GetString(NamespaceKey, "HikanyanLaboratory.Generated");
-            set => EditorPrefs.SetString(NamespaceKey, value);
-        }
-
-        public static string FilterPath
-        {
-            get => EditorPrefs.GetString(FilterPathKey, DefaultFilterPath);
-            set => EditorPrefs.SetString(FilterPathKey, value);
-        }
-
-        public static string TargetGroupName
-        {
-            get => EditorPrefs.GetString(TargetGroupKey, "");
-            set => EditorPrefs.SetString(TargetGroupKey, value);
-        }
-
+        private static PrefabKeysProjectSettings Data => PrefabKeysProjectSettings.instance;
+        public static string OutputPath { get => Data.outputPath; set { Data.outputPath = value; Data.Persist(); } }
+        public static string FilterPath { get => Data.filterPath; set { Data.filterPath = value; Data.Persist(); } }
+        public static string Namespace { get => Data.namespaceName; set { Data.namespaceName = value; Data.Persist(); } }
+        public static string TargetGroupName { get => Data.groupName; set { Data.groupName = value; Data.Persist(); } }
+        public static bool AutoGenerateOnModified { get => Data.autoGenerate; set { Data.autoGenerate = value; Data.Persist(); } }
         public static void ResetToDefault()
         {
-            EditorPrefs.DeleteKey(OutputPathKey);
-            EditorPrefs.DeleteKey(AutoGenerateKey);
-            EditorPrefs.DeleteKey(NamespaceKey);
-            EditorPrefs.DeleteKey(FilterPathKey);
-            EditorPrefs.DeleteKey(TargetGroupKey);
+            OutputPath = "Assets/Generated/PrefabKeys.cs";
+            FilterPath = "Assets/UI";
+            Namespace = "Game.UI";
+            TargetGroupName = "";
+            AutoGenerateOnModified = false;
         }
     }
 }
-#endif

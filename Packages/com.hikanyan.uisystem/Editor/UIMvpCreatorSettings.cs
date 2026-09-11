@@ -7,7 +7,7 @@ namespace HikanyanLibrary.UISystem.Editor
     {
         [Header("Roots (Folder Paths)")]
         public string GeneratedRoot = "Assets/HikanyanLibrary/Scripts/UISystem/Generated";
-        public string TemplateRoot   = "Assets/HikanyanLibrary/Scripts/UISystem/Editor/Template";
+        public string TemplateRoot   = "Packages/com.hikanyan.uisystem/Editor/Template";
         public string PrefabRoot     = "Assets/HikanyanLibrary/Prefab/UISystem";
 
         [Header("General")]
