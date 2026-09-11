@@ -2,7 +2,6 @@
     "name": "com.hikanyan.uisystem",
     "rootNamespace": "HikanyanLibrary.UISystem",
     "references": [
-        "HikanyanLibrary.Core",
         "UniTask",
         "Unity.Addressables",
         "Unity.ResourceManager"

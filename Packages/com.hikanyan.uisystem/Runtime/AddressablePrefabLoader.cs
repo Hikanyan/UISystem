@@ -1,106 +1,45 @@
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
-using UnityEngine.ResourceManagement.AsyncOperations;
-
-// using VContainer;
-// using VContainer.Unity;
 
 namespace HikanyanLibrary.UISystem
 {
     public static class AddressablePrefabLoader
     {
-        // public static async UniTask<T> LoadAndInstantiateAsync<T, TSceneScope>(string prefabKey,
-        //     CancellationToken cancellationToken = default)
-        //     where T : MonoBehaviour
-        //     where TSceneScope : LifetimeScope
-        // {
-        //     var handle = Addressables.LoadAssetAsync<GameObject>(prefabKey);
-        //     await handle.ToUniTask(cancellationToken: cancellationToken);
-        //
-        //     var prefab = handle.Result;
-        //     var scope = LifetimeScope.Find<TSceneScope>();
-        //     var instance = scope.Container.Instantiate(prefab);
-        //     var component = instance.GetComponent<T>();
-        //     scope.Container.Inject(component);
-        //     return component;
-        // }
-        //
-        // public static async UniTask<T> LoadAndInstantiateAsync<T, TSceneScope>(string prefabKey, Transform parent,
-        //     CancellationToken cancellationToken = default)
-        //     where T : MonoBehaviour
-        //     where TSceneScope : LifetimeScope
-        // {
-        //     var handle = Addressables.LoadAssetAsync<GameObject>(prefabKey);
-        //     await handle.ToUniTask(cancellationToken: cancellationToken);
-        //
-        //     var prefab = handle.Result;
-        //     var scope = LifetimeScope.Find<TSceneScope>();
-        //     var instance = scope.Container.Instantiate(prefab, parent);
-        //     var component = instance.GetComponent<T>();
-        //     scope.Container.Inject(component);
-        //     return component;
-        // }
-
-        public static async UniTask<T> LoadAndInstantiateAsync<T>(string prefabKey,
-            CancellationToken cancellationToken = default)
-            where T : MonoBehaviour
-        {
-            AsyncOperationHandle<GameObject> handle = default;
-            try
-            {
-                handle = Addressables.LoadAssetAsync<GameObject>(prefabKey);
-                await handle.ToUniTask(cancellationToken: cancellationToken);
-
-                var prefab = handle.Result;
-
-                var instance = Object.Instantiate(prefab);
-                var component = instance.GetComponent<T>();
-                return component;
-            }
-            catch (System.Exception)
-            {
-                Debug.LogError($"AddressablePrefabLoader: prefabKey={prefabKey} から {typeof(T).Name} を取得できませんでした。");
-                return null;
-            }
-            // finally
-            // {
-            //     if (handle.IsValid())
-            //     {
-            //         Addressables.Release(handle);
-            //     }
-            // }
-        }
+        public static UniTask<T> LoadAndInstantiateAsync<T>(string prefabKey, CancellationToken cancellationToken = default)
+            where T : MonoBehaviour => LoadAndInstantiateAsync<T>(prefabKey, null, cancellationToken);
 
         public static async UniTask<T> LoadAndInstantiateAsync<T>(string prefabKey, Transform parent,
-            CancellationToken cancellationToken = default)
-            where T : MonoBehaviour
+            CancellationToken cancellationToken = default) where T : MonoBehaviour
         {
-            AsyncOperationHandle<GameObject> handle = default;
+            cancellationToken.ThrowIfCancellationRequested();
+            if (string.IsNullOrWhiteSpace(prefabKey)) throw new ArgumentException("A prefab key is required.", nameof(prefabKey));
+            var handle = Addressables.LoadAssetAsync<GameObject>(prefabKey);
+            GameObject instance = null;
+            var transferred = false;
             try
             {
-                handle = Addressables.LoadAssetAsync<GameObject>(prefabKey);
                 await handle.ToUniTask(cancellationToken: cancellationToken);
-
                 var prefab = handle.Result;
-
-                var instance = Object.Instantiate(prefab, parent);
-                var component = instance.GetComponent<T>();
-                return component;
+                cancellationToken.ThrowIfCancellationRequested();
+                if (prefab.GetComponent<T>() == null)
+                    throw new InvalidOperationException($"Prefab '{prefabKey}' must have {typeof(T).Name} on its root.");
+                instance = UnityEngine.Object.Instantiate(prefab, parent, false);
+                instance.AddComponent<AddressableInstanceOwner>().Initialize(handle);
+                transferred = true;
+                return instance.GetComponent<T>();
             }
-            catch (System.Exception)
+            catch
             {
-                Debug.LogError($"AddressablePrefabLoader: prefabKey={prefabKey} から {typeof(T).Name} を取得できませんでした。");
-                return null;
+                if (instance != null) UnityEngine.Object.Destroy(instance);
+                throw;
             }
-            // finally
-            // {
-            //     if (handle.IsValid())
-            //     {
-            //         Addressables.Release(handle);
-            //     }
-            // }
+            finally
+            {
+                if (!transferred && handle.IsValid()) Addressables.Release(handle);
+            }
         }
     }
 }

@@ -1,0 +1,6 @@
+{
+  "name": "Hikanyan.UISystem.Tests",
+  "references": ["com.hikanyan.uisystem", "UniTask"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "defineConstraints": ["UNITY_INCLUDE_TESTS"]
+}

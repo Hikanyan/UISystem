@@ -10,6 +10,7 @@ namespace HikanyanLibrary.UISystem
     {
         protected TView View { get; private set; }
         protected TModel Model { get; private set; }
+        private bool _bound;
 
         protected virtual void Awake()
         {
@@ -31,7 +32,10 @@ namespace HikanyanLibrary.UISystem
                     $"{GetType().Name}: parameter の型が不正です。期待={typeof(TModel).Name}, 実際={parameter?.GetType().Name ?? "null"}");
             }
 
+            if (View == null) Awake();
+            if (View == null) throw new System.InvalidOperationException($"{GetType().Name}: missing {typeof(TView).Name}.");
             Model = model;
+            _bound = true;
 
             // バインド
             OnBind();
@@ -43,7 +47,14 @@ namespace HikanyanLibrary.UISystem
         protected sealed override async UniTask OnCloseAsync(CancellationToken cancellationToken)
         {
             await OnCloseInternalAsync(cancellationToken);
-            OnUnbind();
+        }
+
+        protected sealed override void OnCleanup()
+        {
+            if (!_bound) return;
+            _bound = false;
+            try { OnUnbind(); }
+            finally { Model = null; }
         }
 
         /// <summary>Model → View 反映など</summary>
