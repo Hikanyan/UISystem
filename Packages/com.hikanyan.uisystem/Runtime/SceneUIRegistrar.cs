@@ -1,56 +1,26 @@
-﻿using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 namespace HikanyanLibrary.UISystem
 {
-    /// <summary>
-    /// Scene 常駐UI（Presenter）を UIManager に登録する
-    /// - これ1つを使い回す
-    /// - MVP を強制：IPresenterNode で検証
-    /// </summary>
     public sealed class SceneUIRegistrar : MonoBehaviour
     {
         [SerializeField] private UINodeBase _node;
+        [SerializeField] private UIManager _manager;
         [SerializeField] private bool _closeOnRegister = true;
-        [SerializeField] private int _sortOrder = 0; // 未使実装
-        
         public int UniqueId { get; private set; } = -1;
-
-        private void Reset()
+        private void Reset() => _node = GetComponent<UINodeBase>();
+        private void Start() => Register();
+        public void Register(UIManager manager = null)
         {
-            _node = GetComponent<UINodeBase>();
+            if (UniqueId != -1) return;
+            _node = _node != null ? _node : GetComponentInChildren<UINodeBase>(true);
+            if (_node == null) throw new System.InvalidOperationException($"{name}: missing UI node.");
+            _manager = manager != null ? manager : (_manager != null ? _manager : UIManager.Instance);
+            UniqueId = _manager.RegisterSceneNode(_node, _closeOnRegister);
         }
-
-        private UINodeBase ResolveNode()
+        private void OnDestroy()
         {
-            if (_node != null) return _node;
-            _node = GetComponent<UINodeBase>();
-            if (_node != null) return _node;
-            _node = GetComponentInChildren<UINodeBase>(true);
-            return _node;
-        }
-
-        private async void Awake()
-        {
-            await UniTask.WaitUntil(
-                () => UIManager.Instance != null,
-                cancellationToken: this.GetCancellationTokenOnDestroy());
-
-            var node = ResolveNode();
-            if (node == null)
-            {
-                Debug.LogError($"{nameof(SceneUIRegistrar)}: UINodeBase が見つかりません。");
-                return;
-            }
-
-            // MVP 強制：PresenterBase 由来であること（= IPresenterNode）を必須にする
-            if (node is not IPresenterNode)
-            {
-                Debug.LogError($"{nameof(SceneUIRegistrar)}: 対象が Presenter ではありません。PresenterBase<,> 派生を配置してください。 node={node.GetType().Name}");
-                return;
-            }
-
-            UniqueId = UIManager.Instance.RegisterSceneNode(node, closeOnRegister: _closeOnRegister);
+            if (_manager != null) _manager.UnregisterSceneNode(_node);
         }
     }
 }

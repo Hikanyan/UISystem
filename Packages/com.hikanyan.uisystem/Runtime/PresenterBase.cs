@@ -4,12 +4,14 @@ using UnityEngine;
 
 namespace HikanyanLibrary.UISystem
 {
-    public abstract class PresenterBase<TView, TModel> : UINodeBase, IPresenterNode
+    public abstract class PresenterBase<TView, TModel> : UINodeBase, IPresenterNode, IUIArguments<TModel>
         where TView : Component
         where TModel : Parameter
     {
         protected TView View { get; private set; }
         protected TModel Model { get; private set; }
+        private bool _bound;
+        protected UIBindings Bindings { get; private set; }
 
         protected virtual void Awake()
         {
@@ -31,7 +33,11 @@ namespace HikanyanLibrary.UISystem
                     $"{GetType().Name}: parameter の型が不正です。期待={typeof(TModel).Name}, 実際={parameter?.GetType().Name ?? "null"}");
             }
 
+            if (View == null) Awake();
+            if (View == null) throw new System.InvalidOperationException($"{GetType().Name}: missing {typeof(TView).Name}.");
             Model = model;
+            Bindings = new UIBindings();
+            _bound = true;
 
             // バインド
             OnBind();
@@ -43,7 +49,18 @@ namespace HikanyanLibrary.UISystem
         protected sealed override async UniTask OnCloseAsync(CancellationToken cancellationToken)
         {
             await OnCloseInternalAsync(cancellationToken);
-            OnUnbind();
+        }
+
+        protected sealed override void OnCleanup()
+        {
+            if (!_bound) return;
+            _bound = false;
+            try { OnUnbind(); }
+            finally
+            {
+                try { Bindings?.Dispose(); }
+                finally { Model = null; Bindings = null; }
+            }
         }
 
         /// <summary>Model → View 反映など</summary>
@@ -53,9 +70,11 @@ namespace HikanyanLibrary.UISystem
         protected virtual void OnUnbind() { }
 
         /// <summary>派生で開くアニメ等を書く</summary>
-        protected virtual UniTask OnOpenInternalAsync(CancellationToken cancellationToken) => UniTask.CompletedTask;
+        protected virtual UniTask OnOpenInternalAsync(CancellationToken cancellationToken) =>
+            TryGetComponent<UIFadeTransition>(out var transition) ? transition.PlayAsync(true, cancellationToken) : UniTask.CompletedTask;
 
         /// <summary>派生で閉じるアニメ等を書く</summary>
-        protected virtual UniTask OnCloseInternalAsync(CancellationToken cancellationToken) => UniTask.CompletedTask;
+        protected virtual UniTask OnCloseInternalAsync(CancellationToken cancellationToken) =>
+            TryGetComponent<UIFadeTransition>(out var transition) ? transition.PlayAsync(false, cancellationToken) : UniTask.CompletedTask;
     }
 }

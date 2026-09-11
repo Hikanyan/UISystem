@@ -1,0 +1,5 @@
+{
+  "name": "Hikanyan.UITools",
+  "references": ["Unity.ugui", "Unity.TextMeshPro", "UniTask", "LitMotion", "LitMotion.Extensions"],
+  "rootNamespace": "HikanyanLibrary.UITools"
+}

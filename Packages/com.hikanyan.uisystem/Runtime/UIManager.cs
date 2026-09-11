@@ -2,214 +2,167 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using HikanyanLibrary.Core;
 using UnityEngine;
 
 namespace HikanyanLibrary.UISystem
 {
-    public sealed class UIManager : SingletonMonoBehaviour<UIManager>
+    [DefaultExecutionOrder(-10000)]
+    public sealed partial class UIManager : MonoBehaviour
     {
+        private static UIManager _instance;
+        public static UIManager Instance => _instance != null ? _instance :
+            throw new InvalidOperationException("Add a UIManager / UI Bootstrap before opening UI.");
+        public static bool TryGetInstance(out UIManager manager) { manager = _instance; return manager != null; }
         [SerializeField] private Transform _defaultRoot;
-        protected override bool IsPersistent => true;
-        private enum NodeLifetime
-        {
-            Generated,
-            SceneResident
-        }
+        [SerializeField] private bool _persistent = true;
+        private readonly CancellationTokenSource _lifetime = new();
+        private readonly Dictionary<int, NodeEntry> _nodes = new();
+        private readonly Dictionary<Type, int> _sceneTypeToId = new();
+        public int RegisteredCount => _nodes.Count;
+        public Transform DefaultRoot { get => _defaultRoot; set => _defaultRoot = value; }
 
         private sealed class NodeEntry
         {
             public UINodeBase Node;
-            public NodeLifetime Lifetime;
+            public bool Generated;
         }
 
-        // uniqueId -> node
-        private readonly Dictionary<int, NodeEntry> _nodes = new();
+        private void Awake()
+        {
+            // Additional managers are valid explicit scopes; the first is the convenience default.
+            if (_instance == null) _instance = this;
+            if (_persistent && transform.parent == null) DontDestroyOnLoad(gameObject);
+        }
 
-        // Scene 常駐: Presenter 型 -> uniqueId（同一型は1つ想定）
-        private readonly Dictionary<Type, int> _sceneTypeToId = new();
-
-        /// <summary>
-        /// Sceneに配置済みのUIを登録する（破棄しない管理）
-        /// FixedId は不要。実行中一意な GetInstanceID を採用。
-        /// </summary>
         public int RegisterSceneNode(UINodeBase node, bool closeOnRegister = true)
         {
             if (node == null) throw new ArgumentNullException(nameof(node));
-
+            if (node.State == UIState.Disposed) throw new ObjectDisposedException(node.name);
             var id = node.gameObject.GetInstanceID();
-
-            if (_nodes.TryGetValue(id, out var existing) && existing.Node != node)
+            if (_nodes.TryGetValue(id, out var same))
             {
-                throw new InvalidOperationException($"UIManager: InstanceID が衝突しました（通常は起きません）。id={id}");
+                if (same.Node != node || same.Generated) throw new InvalidOperationException("Node is already registered with another lifetime.");
+                return id;
             }
-
-            node.InternalSetup(id, this);
-
-            // 初期状態は「登録時に閉じる」を推奨（IsOpen=false のままにできるため）
-            if (closeOnRegister)
-            {
-                node.gameObject.SetActive(false);
-                // IsOpen は UINodeBase の初期値 false のまま（現状設計と整合） :contentReference[oaicite:3]{index=3}
-            }
-
-            _nodes[id] = new NodeEntry { Node = node, Lifetime = NodeLifetime.SceneResident };
-
-            // 型で引けるように登録（同一型複数が必要ならここを拡張）
             var type = node.GetType();
-            if (_sceneTypeToId.TryGetValue(type, out var already) && already != id)
-            {
-                // 旧IDが既に破棄済みなら置き換える
-                if (!_nodes.TryGetValue(already, out var oldEntry) || oldEntry.Node == null)
-                {
-                    _nodes.Remove(already);
-                    _sceneTypeToId[type] = id;
-                }
-                else
-                {
-                    Debug.LogError($"UIManager: SceneResident の同一型が複数登録されました。type={type.Name} id={already} newId={id}");
-                }
-            }
-            else
-            {
-                _sceneTypeToId[type] = id;
-            }
-
+            if (_sceneTypeToId.TryGetValue(type, out var other) && _nodes.TryGetValue(other, out var entry) && entry.Node != null)
+                throw new InvalidOperationException($"Duplicate scene UI type {type.Name}. Use a separate UIManager scope.");
+            node.InternalSetup(id, this);
+            node.InternalSetInitialState(!closeOnRegister && node.gameObject.activeSelf, !closeOnRegister && node.gameObject.activeSelf);
+            _nodes.Add(id, new NodeEntry { Node = node });
+            _sceneTypeToId[type] = id;
+            node.Disposed += OnNodeDisposed;
             return id;
         }
 
-        /// <summary>
-        /// Scene 常駐UIを登録解除する
-        /// </summary>
         public void UnregisterSceneNode(UINodeBase node)
         {
-            if (node == null)
-                return;
+            if (ReferenceEquals(node, null)) return;
+            if (_nodes.TryGetValue(node.UniqueId, out var entry) && !entry.Generated && entry.Node == node)
+            {
+                RemoveEntry(node.UniqueId);
+                node.Dispose();
+            }
+        }
 
-            var id = node.gameObject.GetInstanceID();
+        private void OnNodeDisposed(UINodeBase node) => RemoveEntry(node.UniqueId);
+        private void RemoveEntry(int id)
+        {
+            if (!_nodes.TryGetValue(id, out var entry)) return;
             _nodes.Remove(id);
-
-            var type = node.GetType();
-            if (_sceneTypeToId.TryGetValue(type, out var registeredId) && registeredId == id)
+            if (!ReferenceEquals(entry.Node, null))
             {
-                _sceneTypeToId.Remove(type);
+                entry.Node.Disposed -= OnNodeDisposed;
+                var type = entry.Node.GetType();
+                if (_sceneTypeToId.TryGetValue(type, out var registered) && registered == id) _sceneTypeToId.Remove(type);
             }
         }
 
-        /// <summary>
-        /// UI を開く（Addressables から生成）
-        /// </summary>
-        public async UniTask<int> OpenAsync<TPresenter, TParam>(
-            string prefabKey,
-            TParam parameter,
-            Transform parent = null,
-            CancellationToken cancellationToken = default)
-            where TPresenter : UINodeBase
-            where TParam : Parameter
+        public async UniTask<int> OpenAsync<TPresenter, TParam>(string prefabKey, TParam parameter,
+            Transform parent = null, CancellationToken cancellationToken = default)
+            where TPresenter : UINodeBase where TParam : Parameter
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var root = parent != null ? parent : _defaultRoot;
-
-            TPresenter presenter = root != null
-                ? await AddressablePrefabLoader.LoadAndInstantiateAsync<TPresenter>(prefabKey, root, cancellationToken)
-                : await AddressablePrefabLoader.LoadAndInstantiateAsync<TPresenter>(prefabKey, cancellationToken);
-
-            if (presenter == null)
-                throw new Exception($"UIManager: prefabKey={prefabKey} から {typeof(TPresenter).Name} を取得できませんでした。");
-
-            // GetHashCode() はやめる（衝突し得る） :contentReference[oaicite:4]{index=4}
-            var id = presenter.gameObject.GetInstanceID();
-            presenter.InternalSetup(id, this);
-            _nodes[id] = new NodeEntry { Node = presenter, Lifetime = NodeLifetime.Generated };
-
-            await presenter.OpenAsync(parameter, cancellationToken);
-            return id;
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetime.Token);
+            var presenter = await AddressablePrefabLoader.LoadAndInstantiateAsync<TPresenter>(prefabKey,
+                parent != null ? parent : _defaultRoot, linked.Token);
+            return await OpenGeneratedAsync(presenter, parameter, linked.Token);
         }
 
-        /// <summary>
-        /// uniqueId 指定で閉じる
-        /// - Generated: Close後にDestroy
-        /// - SceneResident: Close後も保持（Destroyしない）
-        /// </summary>
-        public async UniTask CloseAsync(int uniqueId, CancellationToken cancellationToken)
+        private async UniTask<int> OpenGeneratedAsync(UINodeBase node, Parameter parameter, CancellationToken token)
         {
-            if (!_nodes.TryGetValue(uniqueId, out var entry) || entry.Node == null)
-                return;
-
-            cancellationToken.ThrowIfCancellationRequested();
-
-            await entry.Node.CloseAsync(cancellationToken);
-
-            if (entry.Lifetime == NodeLifetime.Generated)
+            var id = node.gameObject.GetInstanceID();
+            try
             {
-                _nodes.Remove(uniqueId);
-                Destroy(entry.Node.gameObject); // 現状は常にDestroyしている :contentReference[oaicite:5]{index=5}
+                token.ThrowIfCancellationRequested();
+                node.InternalSetup(id, this);
+                _nodes.Add(id, new NodeEntry { Node = node, Generated = true });
+                node.Disposed += OnNodeDisposed;
+                await node.OpenAsync(parameter, token);
+                return id;
+            }
+            catch { ReleaseGenerated(id, node); throw; }
+        }
+
+        private void ReleaseGenerated(int id, UINodeBase node)
+        {
+            RemoveEntry(id);
+            if (node == null) return;
+            new DefaultUIViewLoader().Release(node);
+        }
+
+        public async UniTask CloseAsync(int uniqueId, CancellationToken cancellationToken = default)
+        {
+            if (_handles.TryGetValue(uniqueId, out var handle)) { await CloseHandleAsync(handle, cancellationToken); return; }
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!_nodes.TryGetValue(uniqueId, out var entry) || entry.Node == null) return;
+            try { await entry.Node.CloseAsync(cancellationToken); }
+            finally
+            {
+                if (entry.Generated && (entry.Node == null || entry.Node.State == UIState.Closed || entry.Node.State == UIState.Disposed))
+                    ReleaseGenerated(uniqueId, entry.Node);
             }
         }
 
-        /// <summary>
-        /// Scene 常駐UIを「型」で開く（IDを持ち回らなくてよい）
-        /// </summary>
         public async UniTask OpenSceneAsync<TPresenter, TParam>(TParam parameter, CancellationToken cancellationToken = default)
-            where TPresenter : UINodeBase
-            where TParam : Parameter
+            where TPresenter : UINodeBase where TParam : Parameter
         {
-            // まず登録を待つ（タイムアウト付き）
-            var presenterType = typeof(TPresenter);
-
-            if (_sceneTypeToId.TryGetValue(presenterType, out var staleId))
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetime.Token);
+            var deadline = Time.realtimeSinceStartupAsDouble + 5;
+            while (!_sceneTypeToId.ContainsKey(typeof(TPresenter)))
             {
-                if (!_nodes.TryGetValue(staleId, out var staleEntry) || staleEntry.Node == null)
-                {
-                    _nodes.Remove(staleId);
-                    _sceneTypeToId.Remove(presenterType);
-                }
+                linked.Token.ThrowIfCancellationRequested();
+                if (Time.realtimeSinceStartupAsDouble >= deadline)
+                    throw new TimeoutException($"Scene UI {typeof(TPresenter).Name} was not registered. Check SceneUIRegistrar / UIScope.");
+                await UniTask.Yield(PlayerLoopTiming.Update, linked.Token);
             }
-
-            if (!_sceneTypeToId.TryGetValue(presenterType, out var id))
-            {
-                const int timeoutMs = 5000;
-
-                var waitRegistered = UniTask.WaitUntil(
-                    () => _sceneTypeToId.ContainsKey(presenterType),
-                    cancellationToken: cancellationToken);
-
-                var timeout = UniTask.Delay(timeoutMs, cancellationToken: cancellationToken);
-
-                var winner = await UniTask.WhenAny(waitRegistered, timeout);
-                if (winner == 1) // timeout
-                    throw new Exception($"UIManager: SceneResident {presenterType.Name} の登録待ちがタイムアウトしました（{timeoutMs}ms）。SceneUIRegistrar の配置/有効状態/実行順を確認してください。");
-
-                id = _sceneTypeToId[presenterType];
-            }
-
-            if (!_nodes.TryGetValue(id, out var entry) || entry.Node == null)
-                throw new Exception($"UIManager: 登録済みノードが見つかりません。type={presenterType.Name}");
-
-            await entry.Node.OpenAsync(parameter, cancellationToken);
+            var id = _sceneTypeToId[typeof(TPresenter)];
+            if (!TryGetNode(id, out var node)) throw new InvalidOperationException("The scene UI scope has ended.");
+            await node.OpenAsync(parameter, linked.Token);
         }
 
+        public UniTask CloseSceneAsync<TPresenter>(CancellationToken cancellationToken = default) where TPresenter : UINodeBase =>
+            _sceneTypeToId.TryGetValue(typeof(TPresenter), out var id) ? CloseAsync(id, cancellationToken) : UniTask.CompletedTask;
 
-        public async UniTask CloseSceneAsync<TPresenter>(CancellationToken cancellationToken = default)
-            where TPresenter : UINodeBase
+        public bool TryGetNode(int id, out UINodeBase node)
         {
-            if (!_sceneTypeToId.TryGetValue(typeof(TPresenter), out var id))
-                return;
-
-            await CloseAsync(id, cancellationToken);
+            node = _nodes.TryGetValue(id, out var entry) ? entry.Node : null;
+            return node != null;
         }
 
-        public bool TryGetNode(int uniqueId, out UINodeBase node)
+        private void OnDestroy()
         {
-            if (_nodes.TryGetValue(uniqueId, out var entry))
+            _lifetime.Cancel();
+            DisposePresentations();
+            var entries = new List<NodeEntry>(_nodes.Values);
+            foreach (var entry in entries)
             {
-                node = entry.Node;
-                return node != null;
+                if (entry.Node == null) continue;
+                entry.Node.Dispose();
+                if (entry.Generated) Destroy(entry.Node.gameObject);
             }
-
-            node = null;
-            return false;
+            _nodes.Clear();
+            _sceneTypeToId.Clear();
+            if (_instance == this) _instance = null;
         }
     }
 }

@@ -1,0 +1,6 @@
+{
+  "name": "Hikanyan.UITools.Tests",
+  "references": ["Hikanyan.UITools", "Unity.ugui", "UniTask"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "defineConstraints": ["UNITY_INCLUDE_TESTS"]
+}

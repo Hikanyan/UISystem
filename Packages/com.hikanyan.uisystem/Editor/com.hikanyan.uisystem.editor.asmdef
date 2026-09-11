@@ -2,7 +2,8 @@
     "name": "com.hikanyan.uisystem.editor",
     "rootNamespace": "HikanyanLibrary.UISystem.Editor",
     "references": [
-        "com.hikanyan.uisystem"
+        "com.hikanyan.uisystem",
+        "Unity.ugui"
     ],
     "includePlatforms": [
         "Editor"

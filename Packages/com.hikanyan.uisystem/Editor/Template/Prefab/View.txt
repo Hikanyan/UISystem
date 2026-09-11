@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+using HikanyanLibrary.UISystem;
+using UnityEngine;
 
 namespace {{NAMESPACE}}
 {
