@@ -171,7 +171,7 @@ namespace HikanyanLibrary.UISystem
                 _cache[handle.Definition.Id] = new CachedView { Node = handle.Node, Loader = handle.Loader };
             }
             else handle.Loader.Release(handle.Node);
-            if (handle.Frame != null) Destroy(handle.Frame);
+            if (handle.Frame != null) { handle.Frame.SetActive(false); Destroy(handle.Frame); }
             RefreshPresentation(handle.PreviousSelection);
         }
 

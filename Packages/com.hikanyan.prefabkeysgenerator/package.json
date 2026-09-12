@@ -1,14 +1,14 @@
 {
   "name": "com.hikanyan.prefabkeysgenerator",
-  "version": "1.0.0",
+  "version": "2.0.0-preview.1",
   "displayName": "Prefab Keys Generator with Addressables",
   "description": "Automatically registers prefabs in a specific folder to Addressables, normalizes addresses, and generates a C# constants class.",
-  "unity": "6000.0",
+  "unity": "6000.3",
   "author": {
     "name": "Hikanyan"
   },
   "dependencies": {
     "com.unity.addressables": "2.9.1",
-    "com.hikanyan.uisystem": "1.0.0"
+    "com.hikanyan.uisystem": "2.0.0-preview.1"
   }
 }

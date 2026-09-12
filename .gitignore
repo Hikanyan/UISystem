@@ -130,3 +130,5 @@ UISystem.sln
 .idea/
 .inspector.mcp.json
 .uloop/
+/ValidationProject/
+/TestResults/

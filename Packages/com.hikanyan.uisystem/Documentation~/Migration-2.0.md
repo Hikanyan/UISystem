@@ -1,0 +1,15 @@
+# 1.xから2.0 Previewへの移行
+
+1. Unity 6000.3へ更新し、UniTask 2.5.10を導入してください。旧版のUnity 2020.3対応宣言は撤回しました。
+2. HikanyanLibrary-CoreはUISystemの依存から外れました。他機能が使用する場合は残してください。
+3. `UIManager.Instance`は自動生成しません。Bootstrapを配置してください。型付き画面はUICatalogに登録します。
+4. 既存の文字列OpenAsync、OpenSceneAsync、整数IDのCloseAsyncは残っています。段階的にUIKeyとUIHandleへ移行できます。
+5. Closeキャンセル後も閉じてUnbindする仕様です。演出を中断して開いたままにする挙動が必要なら、上位の画面操作設計で扱ってください。
+6. OnUnbindはOpen失敗や外部Destroyでも呼ばれます。部分的に初期化された状態を許容してください。Bindingsへ解除処理を登録すると管理を簡略化できます。
+7. Sceneの同型重複は例外になります。別UIScope／Managerへ分けてください。Unregisterは再使用しない最終終了です。
+8. MVP設定はプロジェクト別のキーで選択します。TemplateRootの既定はパッケージ内です。古い設定assetを再使用する場合は手動で修正してください。
+9. キー生成ツールは既存Addressableアドレスを変更しません。新規登録はGUIDアドレスになります。AutoGenerateは既定OFF、設定はProjectSettings/HikanyanPrefabKeys.assetへ保存します。このファイルをチームで共有してください。
+10. 同名Prefabや不正な識別子は明示的に失敗します。既存コードで文字列を直書きしていた場合は、生成キーへ置き換えてください。
+11. UIToolsは`com.hikanyan.uitools`へ移しました。metaのGUIDは保持していますが、独自asmdefは`Hikanyan.UITools`を参照する必要があります。ButtonCommonのOnClickedに渡されるPointerEventDataはSubmitとの統一によりnullです。位置が必要ならOnPressedなどで取得してください。
+
+現段階は破壊的変更を含むpreviewです。Git上の既存1.0.0タグや利用者向け配布物を上書きしないでください。

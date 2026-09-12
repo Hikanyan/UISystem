@@ -6,6 +6,20 @@ namespace HikanyanLibrary.UISystem.Tests
 {
     public sealed class GenerationTests
     {
+        [Test] public void BootstrapCreatesCanvasAndLayerRootsWithoutDuplicates()
+        {
+            var go = new UnityEngine.GameObject("bootstrap", typeof(UIManager), typeof(UIBootstrap));
+            try
+            {
+                var bootstrap = go.GetComponent<UIBootstrap>();
+                bootstrap.Initialize(); bootstrap.Initialize();
+                var manager = go.GetComponent<UIManager>();
+                Assert.IsNotNull(manager.DefaultRoot.GetComponentInParent<UnityEngine.Canvas>());
+                Assert.AreEqual(4, manager.DefaultRoot.childCount);
+                Assert.IsNotNull(manager.DefaultRoot.GetComponent<UIScope>());
+            }
+            finally { UnityEngine.Object.DestroyImmediate(go); }
+        }
         [TestCase("MyGame.UI", true)]
         [TestCase("Game.class", false)]
         [TestCase("Game..UI", false)]

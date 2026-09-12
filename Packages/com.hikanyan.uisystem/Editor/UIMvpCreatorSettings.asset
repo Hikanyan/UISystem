@@ -9,12 +9,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 46dcf721a37748608be57cb40828c1ea, type: 3}
+  m_Script: {fileID: 11500000, guid: 4e6e59f776721de4da9f8b997115c87e, type: 3}
   m_Name: UIMvpCreatorSettings
-  m_EditorClassIdentifier: Assembly-CSharp-Editor::HikanyanLaboratory.UI.UISystem.EditorTools.UIMvpCreatorSettings
-  GeneratedRoot: Assets/HikanyanTools/Scripts/UISystem/Generated
-  TemplateRoot: Assets/HikanyanTools/Scripts/UISystem/Editor/Template
-  PrefabRoot: Assets/HikanyanTools/Prefab/UI
-  DefaultNamespace: HikanyanTools.UISystem
+  m_EditorClassIdentifier: com.hikanyan.uisystem.editor::HikanyanLibrary.UISystem.Editor.UIMvpCreatorSettings
+  GeneratedRoot: Assets/UI/Scripts
+  TemplateRoot: Packages/com.hikanyan.uisystem/Editor/Template
+  PrefabRoot: Assets/UI/Prefabs
+  DefaultNamespace: Game.UI
   OverwriteScriptsDefault: 0
   OverwritePrefabDefault: 0

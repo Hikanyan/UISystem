@@ -7,7 +7,8 @@ namespace HikanyanLibrary.UISystem
     [RequireComponent(typeof(UIManager))]
     public sealed class UIBootstrap : MonoBehaviour
     {
-        private void Awake()
+        private void Awake() => Initialize();
+        public void Initialize()
         {
             var manager = GetComponent<UIManager>();
             var canvas = GetComponentInChildren<Canvas>(true);
@@ -29,6 +30,8 @@ namespace HikanyanLibrary.UISystem
                 safe.gameObject.AddComponent<UISafeArea>();
             }
             manager.DefaultRoot = safe;
+            var scope = safe.GetComponent<UIScope>() ?? safe.gameObject.AddComponent<UIScope>();
+            scope.Initialize(manager);
             foreach (UILayer layer in System.Enum.GetValues(typeof(UILayer)))
             {
                 var root = safe.Find(layer.ToString()) ?? CreateRect(layer.ToString(), safe);

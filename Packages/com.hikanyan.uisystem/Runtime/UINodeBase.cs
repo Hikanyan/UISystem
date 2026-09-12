@@ -98,11 +98,16 @@ namespace HikanyanLibrary.UISystem
         {
             if (State == UIState.Disposed) return;
             State = UIState.Disposed;
-            _lifetime.Cancel();
+            try { _lifetime.Cancel(); }
+            catch (Exception exception) { Debug.LogException(exception, this); }
             CleanupSafely();
             if (this != null) gameObject.SetActive(false);
-            Disposed?.Invoke(this);
+            var callbacks = Disposed;
             Disposed = null;
+            if (callbacks != null)
+                foreach (Action<UINodeBase> callback in callbacks.GetInvocationList())
+                    try { callback(this); }
+                    catch (Exception exception) { Debug.LogException(exception, this); }
         }
 
         protected virtual void OnDestroy() => Dispose();

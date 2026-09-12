@@ -12,6 +12,8 @@ namespace HikanyanLibrary.UISystem
         protected TModel Model { get; private set; }
         private bool _bound;
         protected UIBindings Bindings { get; private set; }
+        private CancellationTokenSource _bindingLifetime;
+        protected CancellationToken BindingToken => _bindingLifetime?.Token ?? new CancellationToken(true);
 
         protected virtual void Awake()
         {
@@ -37,6 +39,7 @@ namespace HikanyanLibrary.UISystem
             if (View == null) throw new System.InvalidOperationException($"{GetType().Name}: missing {typeof(TView).Name}.");
             Model = model;
             Bindings = new UIBindings();
+            _bindingLifetime = new CancellationTokenSource();
             _bound = true;
 
             // バインド
@@ -55,11 +58,13 @@ namespace HikanyanLibrary.UISystem
         {
             if (!_bound) return;
             _bound = false;
+            try { _bindingLifetime?.Cancel(); }
+            catch (System.Exception exception) { Debug.LogException(exception, this); }
             try { OnUnbind(); }
             finally
             {
                 try { Bindings?.Dispose(); }
-                finally { Model = null; Bindings = null; }
+                finally { _bindingLifetime?.Dispose(); _bindingLifetime = null; Model = null; Bindings = null; }
             }
         }
 

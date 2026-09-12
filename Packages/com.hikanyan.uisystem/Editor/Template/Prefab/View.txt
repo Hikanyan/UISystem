@@ -8,7 +8,6 @@ namespace {{NAMESPACE}}
     /// Prefab UI は SceneUIRegistrar を要求しない（Scene 固有管理に寄せない）前提。
     /// </summary>
     [DisallowMultipleComponent]
-    [RequireComponent(typeof({{PRESENTER_CLASS}}))]
     public sealed class {{VIEW_CLASS}} : MonoBehaviour
     {
         // Viewの参照は必要に応じて追加してください
