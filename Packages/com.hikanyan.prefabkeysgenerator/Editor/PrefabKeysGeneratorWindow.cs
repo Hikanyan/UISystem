@@ -85,7 +85,7 @@ namespace HikanyanLibrary.Tool
                     if (currentIndex == -1) currentIndex = 0;
 
                     int newIndex = EditorGUILayout.Popup(currentIndex, groupNames);
-                    if (newIndex != currentIndex || string.IsNullOrEmpty(_targetGroupName))
+                    if (newIndex >= 0 && newIndex < groupNames.Length && (newIndex != currentIndex || string.IsNullOrEmpty(_targetGroupName)))
                     {
                         _targetGroupName = groupNames[newIndex];
                         PrefabKeysGeneratorSettings.TargetGroupName = _targetGroupName;

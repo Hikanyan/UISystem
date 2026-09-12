@@ -5,8 +5,6 @@ using UnityEngine;
 namespace {{NAMESPACE}}
 {
     [DisallowMultipleComponent]
-    [RequireComponent(typeof(SceneUIRegistrar))]
-    [RequireComponent(typeof({{PRESENTER_CLASS}}))]
     public class {{VIEW_CLASS}} : MonoBehaviour
     {
         [SerializeField] private TextMeshProUGUI text;

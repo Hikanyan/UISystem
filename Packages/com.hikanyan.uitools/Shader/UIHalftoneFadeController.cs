@@ -53,11 +53,18 @@ public sealed class UIHalftoneFadeController : MonoBehaviour
     }
 
 #if UNITY_EDITOR
+    private bool _materialUpdateScheduled;
     private void OnValidate()
     {
-        if (!isActiveAndEnabled) return;
-        InitializeMaterial();
-        ApplyAll();
+        if (!isActiveAndEnabled || _materialUpdateScheduled) return;
+        _materialUpdateScheduled = true;
+        UnityEditor.EditorApplication.delayCall += () =>
+        {
+            _materialUpdateScheduled = false;
+            if (this == null || !isActiveAndEnabled) return;
+            InitializeMaterial();
+            ApplyAll();
+        };
     }
 #endif
 

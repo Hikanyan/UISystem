@@ -137,5 +137,41 @@ namespace HikanyanLibrary.UISystem.Tests
             Add("duplicate"); Add("duplicate");
             Assert.Throws<InvalidOperationException>(() => _catalog.Get("duplicate"));
         }
+
+        [UnityTest] public IEnumerator WarmOpenCloseBenchmark() => UniTask.ToCoroutine(async () =>
+        {
+            var prototype = new GameObject("benchmark prototype", typeof(RectTransform), typeof(TestView));
+            prototype.SetActive(false);
+            try
+            {
+                var definition = Add("benchmark", reuse: UIReuse.KeepAlive);
+                definition.Prefab = prototype.AddComponent<TestPresenter>();
+                _manager.Loader = new DefaultUIViewLoader();
+                var warmup = await _manager.OpenAsync(Key("benchmark"), new TestArgs());
+                await warmup.CloseAsync();
+                var calibrationStart = GC.GetAllocatedBytesForCurrentThread();
+                GC.KeepAlive(new byte[4096]);
+                var allocationCounterAvailable = GC.GetAllocatedBytesForCurrentThread() > calibrationStart;
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                var allocationStart = GC.GetAllocatedBytesForCurrentThread();
+                for (var i = 0; i < 100; i++)
+                {
+                    var handle = await _manager.OpenAsync(Key("benchmark"), new TestArgs());
+                    await handle.CloseAsync();
+                }
+                var allocated = GC.GetAllocatedBytesForCurrentThread() - allocationStart;
+                watch.Stop();
+                var allocationResult = allocationCounterAvailable ? allocated.ToString() : "unavailable (runtime counter did not advance)";
+                var report = $"Unity={Application.unityVersion}\nEnvironment=Editor PlayMode, empty presenter, no rendered graphics\nIterations=100\nElapsedMs={watch.Elapsed.TotalMilliseconds:F3}\nManagedAllocatedBytes={allocationResult}\nCachedViews={_manager.CachedCount}\n";
+                var directory = System.IO.Path.GetFullPath(System.IO.Path.Combine(Application.dataPath, "../TestResults"));
+                System.IO.Directory.CreateDirectory(directory);
+                System.IO.File.WriteAllText(System.IO.Path.Combine(directory, "UISystem-WarmOpenClose.txt"), report);
+                Assert.AreEqual(0, _manager.RegisteredCount);
+                Assert.AreEqual(1, _manager.CachedCount);
+                _manager.ClearCache();
+                Assert.AreEqual(0, _manager.CachedCount);
+            }
+            finally { UnityEngine.Object.DestroyImmediate(prototype); }
+        });
     }
 }

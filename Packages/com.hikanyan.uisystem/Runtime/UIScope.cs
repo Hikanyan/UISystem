@@ -8,6 +8,7 @@ namespace HikanyanLibrary.UISystem
     {
         [SerializeField] private UIManager _manager;
         private SceneUIRegistrar[] _registrars;
+        public void Initialize(UIManager manager) => _manager = manager;
         private void Start()
         {
             if (_manager == null) _manager = UIManager.Instance;

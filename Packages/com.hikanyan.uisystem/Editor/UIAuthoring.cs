@@ -25,6 +25,7 @@ namespace HikanyanLibrary.UISystem.Editor
                 AssetDatabase.CreateAsset(catalog, path);
             }
             manager.Catalog = catalog;
+            root.GetComponent<UIBootstrap>().Initialize();
             if (UnityEngine.Object.FindFirstObjectByType<EventSystem>() == null)
             {
                 var events = new GameObject("EventSystem", typeof(EventSystem));
@@ -37,7 +38,7 @@ namespace HikanyanLibrary.UISystem.Editor
                 }
                 else events.AddComponent<StandaloneInputModule>();
             }
-            Selection.activeGameObject = root;
+            Selection.activeGameObject = manager.DefaultRoot.Find(UILayer.Page.ToString()).gameObject;
             EditorUtility.SetDirty(manager);
             AssetDatabase.SaveAssets();
         }

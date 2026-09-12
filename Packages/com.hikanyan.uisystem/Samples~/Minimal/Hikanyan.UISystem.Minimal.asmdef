@@ -1,0 +1,4 @@
+{
+  "name": "Hikanyan.UISystem.Minimal",
+  "references": ["com.hikanyan.uisystem", "UniTask", "Unity.ugui", "Unity.InputSystem"]
+}
