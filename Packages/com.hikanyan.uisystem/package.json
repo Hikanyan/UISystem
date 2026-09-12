@@ -1,10 +1,14 @@
-﻿{
+{
   "name": "com.hikanyan.uisystem",
-  "version": "1.0.0",
+  "version": "2.0.0-preview.1",
   "displayName": "Hikanyan UI System",
   "description": "A lightweight UI management system for Unity with MVP architecture support",
-  "unity": "2020.3",
-  "keywords": ["ui", "mvp", "hikanyan"],
+  "unity": "6000.3",
+  "keywords": [
+    "ui",
+    "mvp",
+    "hikanyan"
+  ],
   "author": {
     "name": "Hikanyan",
     "url": "https://github.com/Hikanyan"
@@ -19,6 +23,25 @@
     "url": "https://github.com/Hikanyan/UISystem.git"
   },
   "dependencies": {
-    "com.unity.addressables": "2.9.1"
-  }
+    "com.unity.addressables": "2.9.1",
+    "com.cysharp.unitask": "2.5.10",
+    "com.unity.ugui": "2.0.0"
+  },
+  "samples": [
+    {
+      "path": "Samples~/Minimal",
+      "description": "Ready-to-play scene with typed arguments, game data, modal result and focus restoration. Requires Input System.",
+      "displayName": "Minimal Inventory and Dialog"
+    },
+    {
+      "path": "Samples~/Scene",
+      "description": "Scene UI API code examples. Requires TextMeshPro and Input System.",
+      "displayName": "Legacy Scene API"
+    },
+    {
+      "path": "Samples~/Prefab",
+      "description": "Addressables API code examples. Requires configured prefab addresses and TextMeshPro.",
+      "displayName": "Legacy Prefab API"
+    }
+  ]
 }

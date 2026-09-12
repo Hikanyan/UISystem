@@ -3,7 +3,11 @@
   "version": "0.1.0-preview.1",
   "displayName": "Hikanyan UI Tools",
   "description": "Optional uGUI themes, controls, reusable scrolling and drawing helpers.",
-  "unity": "6000.0",
+  "unity": "6000.3",
   "license": "MIT",
-  "dependencies": { "com.unity.ugui": "2.0.0" }
+  "dependencies": {
+    "com.unity.ugui": "2.0.0",
+    "com.cysharp.unitask": "2.5.10",
+    "com.annulusgames.lit-motion": "2.0.2"
+  }
 }
